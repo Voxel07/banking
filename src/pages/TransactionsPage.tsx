@@ -9,16 +9,19 @@ import { useTransactionFilters } from '../hooks/useFilters';
 import { aggregateByName, aggregateByFaction } from '../utils/calculations';
 
 export default function TransactionsPage() {
-  const { transactions, loading, error, createTransaction, deleteTransaction, names, ensureName } =
+  const { transactions, loading, error, createTransaction, updateTransaction, deleteTransaction, names, factionConfigs } =
     useTransactionContext();
   const { search, setSearch, sort, toggleSort, filtered } = useTransactionFilters(transactions);
 
   const nameSummaries = useMemo(() => aggregateByName(transactions), [transactions]);
-  const factionSummaries = useMemo(() => aggregateByFaction(transactions), [transactions]);
+  const factionSummaries = useMemo(() => aggregateByFaction(transactions, factionConfigs), [transactions, factionConfigs]);
 
   const handleSubmit = async (data: Parameters<typeof createTransaction>[0]) => {
-    await ensureName(data.name, data.faction);
     await createTransaction(data);
+  };
+
+  const handleEdit = async (id: string, data: { amount: number; tracked: boolean }) => {
+    await updateTransaction(id, data);
   };
 
   return (
@@ -30,7 +33,6 @@ export default function TransactionsPage() {
 
         <TransactionForm
           names={names}
-          transactions={transactions}
           onSubmit={handleSubmit}
         />
 
@@ -43,6 +45,7 @@ export default function TransactionsPage() {
           onSearchChange={setSearch}
           onSortChange={toggleSort}
           onDelete={deleteTransaction}
+          onEdit={handleEdit}
         />
 
         <NameTotalsTable summaries={nameSummaries} />

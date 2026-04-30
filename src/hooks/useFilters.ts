@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import type { Transaction, SortConfig, SortField } from '../types';
+import type { ResolvedTransaction, SortConfig, SortField } from '../types';
 import { sortTransactions, filterByName } from '../utils/calculations';
 
-export function useTransactionFilters(transactions: Transaction[]) {
+export function useTransactionFilters(transactions: ResolvedTransaction[]) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortConfig>({ field: 'time', direction: 'desc' });
 

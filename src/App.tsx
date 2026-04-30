@@ -5,12 +5,16 @@ import {
 } from '@mui/material';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import PeopleIcon from '@mui/icons-material/People';
+import ShieldIcon from '@mui/icons-material/Shield';
 import Navbar from './components/layout/Navbar';
 import ErrorBoundary from './components/layout/ErrorBoundary';
 import { TransactionProvider } from './hooks/TransactionProvider';
 import { useTransactionContext } from './hooks/transactionContext';
 import TransactionsPage from './pages/TransactionsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import UsersPage from './pages/UsersPage';
+import FactionsPage from './pages/FactionsPage';
 
 const theme = createTheme({
   palette: {
@@ -35,9 +39,11 @@ function AppContent() {
       )}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
         <Container maxWidth="xl">
-          <Tabs value={tab} onChange={(_, v: number) => setTab(v)}>
+          <Tabs value={tab} onChange={(_, v: number) => setTab(v)} variant="scrollable" scrollButtons="auto">
             <Tab icon={<ReceiptLongIcon />} iconPosition="start" label="Transactions" />
             <Tab icon={<BarChartIcon />} iconPosition="start" label="Analytics" />
+            <Tab icon={<PeopleIcon />} iconPosition="start" label="Users" />
+            <Tab icon={<ShieldIcon />} iconPosition="start" label="Factions" />
           </Tabs>
         </Container>
       </Box>
@@ -45,6 +51,8 @@ function AppContent() {
         <ErrorBoundary>
           {tab === 0 && <TransactionsPage />}
           {tab === 1 && <AnalyticsPage />}
+          {tab === 2 && <UsersPage />}
+          {tab === 3 && <FactionsPage />}
         </ErrorBoundary>
       </Container>
     </>

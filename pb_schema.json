@@ -27,37 +27,30 @@
         "onlyInt": false
       },
       {
-        "id": "name_field",
-        "name": "name",
-        "type": "text",
+        "id": "name_id_field",
+        "name": "nameId",
+        "type": "relation",
         "system": false,
         "required": true,
         "presentable": true,
         "hidden": false,
-        "min": 1,
-        "max": 255,
-        "pattern": ""
+        "collectionId": "pbc_names",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
       },
       {
-        "id": "faction_field",
-        "name": "faction",
-        "type": "select",
+        "id": "tracked_field",
+        "name": "tracked",
+        "type": "bool",
         "system": false,
-        "required": true,
+        "required": false,
         "presentable": false,
-        "hidden": false,
-        "values": [
-          "Miliz",
-          "KGG",
-          "GOF",
-          "Enklave"
-        ],
-        "maxSelect": 1
+        "hidden": false
       }
     ],
     "indexes": [
-      "CREATE INDEX idx_transactions_name ON banking_transactions (name)",
-      "CREATE INDEX idx_transactions_faction ON banking_transactions (faction)",
+      "CREATE INDEX idx_transactions_name ON banking_transactions (nameId)",
       "CREATE INDEX idx_transactions_time ON banking_transactions (time)"
     ],
     "listRule": "",
@@ -98,6 +91,45 @@
     ],
     "indexes": [
       "CREATE UNIQUE INDEX idx_names_unique ON banking_names (name)"
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": ""
+  },
+  {
+    "id": "pbc_factions",
+    "name": "banking_factions",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "faction_name_field",
+        "name": "faction",
+        "type": "select",
+        "system": false,
+        "required": true,
+        "presentable": true,
+        "hidden": false,
+        "values": ["Miliz", "KGG", "GOF", "Enklave"],
+        "maxSelect": 1
+      },
+      {
+        "id": "starting_value_field",
+        "name": "startingValue",
+        "type": "number",
+        "system": false,
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "min": null,
+        "max": null,
+        "onlyInt": false
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_factions_unique ON banking_factions (faction)"
     ],
     "listRule": "",
     "viewRule": "",

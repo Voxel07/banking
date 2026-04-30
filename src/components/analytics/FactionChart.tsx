@@ -3,26 +3,30 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend,
 } from 'recharts';
+import { FACTIONS } from '../../types';
 import { formatCurrency } from '../../utils/calculations';
 
-const COLORS = ['#1976d2', '#e91e63', '#2e7d32', '#ff9800', '#9c27b0'];
+const FACTION_COLORS: Record<string, string> = {
+  Miliz: '#1976d2',
+  KGG: '#f44336',
+  GOF: '#ffc107',
+  Enklave: '#ed6c02',
+};
 
 interface DataPoint {
   time: string;
-  [name: string]: number | string;
+  [faction: string]: number | string;
 }
 
 interface Props {
   data: DataPoint[];
-  names: string[];
-  title?: string;
 }
 
-export default function TransactionChart({ data, names, title = 'Cumulative Spending — Top 5 Names' }: Props) {
+export default function FactionChart({ data }: Props) {
   if (data.length === 0) {
     return (
       <Paper elevation={2} sx={{ p: 3, textAlign: 'center' }}>
-        <Typography sx={{ color: 'text.secondary' }}>Not enough data for chart</Typography>
+        <Typography sx={{ color: 'text.secondary' }}>Not enough data for faction chart</Typography>
       </Paper>
     );
   }
@@ -30,7 +34,7 @@ export default function TransactionChart({ data, names, title = 'Cumulative Spen
   return (
     <Paper elevation={2} sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-        {title}
+        Faction Wealth Over Time
       </Typography>
       <Box sx={{ width: '100%', overflow: 'hidden' }}>
         <ResponsiveContainer width="99%" height={320}>
@@ -45,13 +49,13 @@ export default function TransactionChart({ data, names, title = 'Cumulative Spen
               itemStyle={{ color: '#eee' }}
             />
             <Legend />
-            {names.map((name, i) => (
+            {FACTIONS.map((f) => (
               <Line
-                key={name}
+                key={f}
                 type="monotone"
-                dataKey={name}
-                name={name}
-                stroke={COLORS[i % COLORS.length]}
+                dataKey={f}
+                name={f}
+                stroke={FACTION_COLORS[f]}
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 5 }}

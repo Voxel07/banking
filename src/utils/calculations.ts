@@ -1,10 +1,19 @@
-import type { Transaction, NameSummary, FactionSummary, Faction, SortConfig } from '../types';
-import { FACTION_STARTING_VALUES } from '../types';
+import type { ResolvedTransaction, NameSummary, FactionSummary, Faction, SortConfig, FactionConfig } from '../types';
+import { FACTIONS, DEFAULT_FACTION_STARTING_VALUES } from '../types';
 
-export function aggregateByName(transactions: Transaction[]): NameSummary[] {
+export function getStartingValues(factionConfigs: FactionConfig[]): Record<Faction, number> {
+  const result = { ...DEFAULT_FACTION_STARTING_VALUES };
+  for (const cfg of factionConfigs) {
+    result[cfg.faction] = cfg.startingValue;
+  }
+  return result;
+}
+
+export function aggregateByName(transactions: ResolvedTransaction[]): NameSummary[] {
   const map = new Map<string, NameSummary>();
 
   for (const tx of transactions) {
+    if (!tx.tracked) continue;
     const existing = map.get(tx.name);
     if (existing) {
       existing.total += tx.amount;
@@ -13,6 +22,7 @@ export function aggregateByName(transactions: Transaction[]): NameSummary[] {
     } else {
       map.set(tx.name, {
         name: tx.name,
+        faction: tx.faction,
         total: tx.amount,
         count: 1,
         transactions: [tx],
@@ -23,10 +33,12 @@ export function aggregateByName(transactions: Transaction[]): NameSummary[] {
   return Array.from(map.values()).sort((a, b) => b.total - a.total);
 }
 
-export function aggregateByFaction(transactions: Transaction[]): FactionSummary[] {
+export function aggregateByFaction(transactions: ResolvedTransaction[], factionConfigs: FactionConfig[]): FactionSummary[] {
+  const startingValues = getStartingValues(factionConfigs);
   const map = new Map<Faction, { total: number; count: number }>();
 
   for (const tx of transactions) {
+    if (!tx.tracked) continue;
     const existing = map.get(tx.faction);
     if (existing) {
       existing.total += tx.amount;
@@ -36,15 +48,17 @@ export function aggregateByFaction(transactions: Transaction[]): FactionSummary[
     }
   }
 
-  return (Object.keys(FACTION_STARTING_VALUES) as Faction[]).map((faction) => {
+  return FACTIONS.map((faction) => {
     const data = map.get(faction) ?? { total: 0, count: 0 };
-    const startingValue = FACTION_STARTING_VALUES[faction];
+    const startingValue = startingValues[faction];
     const diff = data.total;
+    const currentValue = startingValue + diff;
     const diffPercent = startingValue > 0 ? (diff / startingValue) * 100 : 0;
     return {
       faction,
       startingValue,
       total: data.total,
+      currentValue,
       diff,
       diffPercent,
       count: data.count,
@@ -52,7 +66,7 @@ export function aggregateByFaction(transactions: Transaction[]): FactionSummary[
   });
 }
 
-export function sortTransactions(transactions: Transaction[], sort: SortConfig): Transaction[] {
+export function sortTransactions(transactions: ResolvedTransaction[], sort: SortConfig): ResolvedTransaction[] {
   return [...transactions].sort((a, b) => {
     let cmp = 0;
     switch (sort.field) {
@@ -73,10 +87,13 @@ export function sortTransactions(transactions: Transaction[], sort: SortConfig):
   });
 }
 
-export function filterByName(transactions: Transaction[], search: string): Transaction[] {
+export function filterByName(transactions: ResolvedTransaction[], search: string): ResolvedTransaction[] {
   if (!search.trim()) return transactions;
-  const lower = search.toLowerCase();
-  return transactions.filter((tx) => tx.name.toLowerCase().includes(lower));
+  const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  return transactions.filter((tx) => {
+    const name = tx.name.toLowerCase();
+    return terms.every((term) => name.includes(term));
+  });
 }
 
 export function formatCurrency(amount: number): string {
@@ -95,37 +112,75 @@ export function formatDateTime(dateStr: string): string {
 }
 
 export function buildTimeSeriesData(
-  transactions: Transaction[],
-): { date: string; [name: string]: number | string }[] {
-  if (transactions.length === 0) return [];
+  transactions: ResolvedTransaction[],
+): { time: string; [name: string]: number | string }[] {
+  const tracked = transactions.filter((tx) => tx.tracked);
+  if (tracked.length === 0) return [];
 
-  const sorted = [...transactions].sort(
+  const sorted = [...tracked].sort(
     (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
   );
 
   const topNames = aggregateByName(transactions)
-    .slice(0, 3)
+    .slice(0, 5)
     .map((s) => s.name);
 
-  const dateMap = new Map<string, Record<string, number>>();
+  const hourMap = new Map<string, Record<string, number>>();
 
   for (const tx of sorted) {
     if (!topNames.includes(tx.name)) continue;
-    const date = new Date(tx.time).toLocaleDateString('de-DE');
-    const entry = dateMap.get(date) ?? {};
+    const d = new Date(tx.time);
+    const hourKey = `${d.toLocaleDateString('de-DE')} ${d.getHours().toString().padStart(2, '0')}:00`;
+    const entry = hourMap.get(hourKey) ?? {};
     entry[tx.name] = (entry[tx.name] ?? 0) + tx.amount;
-    dateMap.set(date, entry);
+    hourMap.set(hourKey, entry);
   }
 
-  // Build cumulative series
   const cumulative: Record<string, number> = {};
-  const result: { date: string; [name: string]: number | string }[] = [];
+  const result: { time: string; [name: string]: number | string }[] = [];
 
-  for (const [date, dayData] of dateMap.entries()) {
+  for (const [time, hourData] of hourMap.entries()) {
     for (const name of topNames) {
-      cumulative[name] = (cumulative[name] ?? 0) + (dayData[name] ?? 0);
+      cumulative[name] = (cumulative[name] ?? 0) + (hourData[name] ?? 0);
     }
-    result.push({ date, ...cumulative });
+    result.push({ time, ...cumulative });
+  }
+
+  return result;
+}
+
+export function buildFactionTimeSeriesData(
+  transactions: ResolvedTransaction[],
+  factionConfigs: FactionConfig[],
+): { time: string; [faction: string]: number | string }[] {
+  const tracked = transactions.filter((tx) => tx.tracked);
+  if (tracked.length === 0) return [];
+
+  const startingValues = getStartingValues(factionConfigs);
+  const sorted = [...tracked].sort(
+    (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+  );
+
+  const hourMap = new Map<string, Record<string, number>>();
+
+  for (const tx of sorted) {
+    const d = new Date(tx.time);
+    const hourKey = `${d.toLocaleDateString('de-DE')} ${d.getHours().toString().padStart(2, '0')}:00`;
+    const entry = hourMap.get(hourKey) ?? {};
+    entry[tx.faction] = (entry[tx.faction] ?? 0) + tx.amount;
+    hourMap.set(hourKey, entry);
+  }
+
+  const cumulative: Record<string, number> = {};
+  for (const f of FACTIONS) cumulative[f] = startingValues[f];
+
+  const result: { time: string; [faction: string]: number | string }[] = [];
+
+  for (const [time, hourData] of hourMap.entries()) {
+    for (const f of FACTIONS) {
+      cumulative[f] = cumulative[f] + (hourData[f] ?? 0);
+    }
+    result.push({ time, ...cumulative });
   }
 
   return result;

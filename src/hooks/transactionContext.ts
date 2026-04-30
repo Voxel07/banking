@@ -1,15 +1,18 @@
 import { createContext, useContext } from 'react';
-import type { TransactionCreateData, Faction, Name } from '../types';
-import type { Transaction } from '../types';
+import type { Faction, Name, FactionConfig, ResolvedTransaction } from '../types';
 
 export interface TransactionContextValue {
-  transactions: Transaction[];
+  transactions: ResolvedTransaction[];
   loading: boolean;
   error: string | null;
-  createTransaction: (data: TransactionCreateData) => Promise<void>;
+  createTransaction: (data: { name: string; amount: number; faction: Faction; time: string; tracked: boolean }) => Promise<void>;
+  updateTransaction: (id: string, data: { amount?: number; nameId?: string; tracked?: boolean }) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   names: Name[];
-  ensureName: (name: string, faction: Faction) => Promise<void>;
+  ensureName: (name: string, faction: Faction) => Promise<Name>;
+  updateName: (id: string, name: string) => Promise<void>;
+  factionConfigs: FactionConfig[];
+  updateFactionStartValue: (faction: Faction, startingValue: number) => Promise<void>;
   online: boolean;
 }
 

@@ -10,16 +10,16 @@ import {
   Typography,
   InputAdornment,
   Autocomplete,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import type { TransactionCreateData, Faction, Name } from '../../types';
+import type { Faction, Name } from '../../types';
 import { FACTIONS } from '../../types';
-import type { Transaction } from '../../types';
 
 interface Props {
   names: Name[];
-  transactions: Transaction[];
-  onSubmit: (data: TransactionCreateData) => Promise<void>;
+  onSubmit: (data: { name: string; amount: number; faction: Faction; time: string; tracked: boolean }) => Promise<void>;
 }
 
 export default function TransactionForm({ names, onSubmit }: Props) {
@@ -27,11 +27,14 @@ export default function TransactionForm({ names, onSubmit }: Props) {
   const [amount, setAmount] = useState('');
   const [faction, setFaction] = useState<Faction>('Miliz');
   const [time, setTime] = useState(() => new Date().toISOString().slice(0, 16));
+  const [tracked, setTracked] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const nameStrings = names.map((n) => n.name);
+  const matchedName = names.find((n) => n.name === name.trim());
+  const factionLocked = !!matchedName;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +43,15 @@ export default function TransactionForm({ names, onSubmit }: Props) {
     if (!name.trim()) return setError('Name is required');
     if (isNaN(amt) || amt === 0) return setError('Amount must not be zero');
 
+    const effectiveFaction = matchedName ? matchedName.faction : faction;
+
     setSubmitting(true);
     try {
-      await onSubmit({ name: name.trim(), amount: amt, faction, time: new Date(time).toISOString() });
+      await onSubmit({ name: name.trim(), amount: amt, faction: effectiveFaction, time: new Date(time).toISOString(), tracked });
       setName('');
       setAmount('');
       setTime(new Date().toISOString().slice(0, 16));
+      setTracked(true);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -72,7 +78,6 @@ export default function TransactionForm({ names, onSubmit }: Props) {
               value={name}
               onInputChange={(_, v) => {
                 setName(v);
-                // Auto-fill faction if name matches a known entry
                 const match = names.find((n) => n.name === v);
                 if (match) setFaction(match.faction);
               }}
@@ -96,18 +101,18 @@ export default function TransactionForm({ names, onSubmit }: Props) {
             />
           </Stack>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: 'center' }}>
             <TextField
               select
               label="Faction"
-              value={faction}
+              value={matchedName ? matchedName.faction : faction}
               onChange={(e) => setFaction(e.target.value as Faction)}
+              disabled={factionLocked}
               sx={{ flex: 1 }}
+              helperText={factionLocked ? 'Locked to user faction' : undefined}
             >
               {FACTIONS.map((f) => (
-                <MenuItem key={f} value={f}>
-                  {f}
-                </MenuItem>
+                <MenuItem key={f} value={f}>{f}</MenuItem>
               ))}
             </TextField>
             <TextField
@@ -117,6 +122,10 @@ export default function TransactionForm({ names, onSubmit }: Props) {
               onChange={(e) => setTime(e.target.value)}
               sx={{ flex: 2 }}
               slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <FormControlLabel
+              control={<Switch checked={tracked} onChange={(e) => setTracked(e.target.checked)} />}
+              label="Tracked"
             />
           </Stack>
 

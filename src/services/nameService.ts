@@ -7,7 +7,6 @@ export const nameService = {
   },
 
   async createIfNotExists(name: string, faction: Faction): Promise<Name> {
-    // Use PocketBase filter with single-quoted values
     const filter = `name = '${name.replace(/'/g, "''")}'`;
     try {
       const records = await pb.collection('banking_names').getList<Name>(1, 1, { filter });
@@ -15,18 +14,20 @@ export const nameService = {
         return records.items[0];
       }
     } catch {
-      // If filter fails, fall through to create
+      // fall through to create
     }
     return pb.collection('banking_names').create<Name>({ name, faction });
   },
 
+  async update(id: string, name: string): Promise<Name> {
+    return pb.collection('banking_names').update<Name>(id, { name });
+  },
+
   subscribe(callback: () => void): () => void {
     let cancelled = false;
-
     pb.collection('banking_names').subscribe('*', () => {
       if (!cancelled) callback();
     });
-
     return () => {
       cancelled = true;
       pb.collection('banking_names').unsubscribe('*');
