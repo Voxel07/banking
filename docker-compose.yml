@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3334:80"
+    environment:
+      - POCKETBASE_URL=http://pocketbase:8090
+    depends_on:
+      - pocketbase

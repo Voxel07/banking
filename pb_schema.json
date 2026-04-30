@@ -1,0 +1,108 @@
+[
+  {
+    "id": "pbc_transactions",
+    "name": "banking_transactions",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "time_field",
+        "name": "time",
+        "type": "date",
+        "system": false,
+        "required": true,
+        "presentable": false,
+        "hidden": false
+      },
+      {
+        "id": "amount_field",
+        "name": "amount",
+        "type": "number",
+        "system": false,
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "min": null,
+        "max": null,
+        "onlyInt": false
+      },
+      {
+        "id": "name_field",
+        "name": "name",
+        "type": "text",
+        "system": false,
+        "required": true,
+        "presentable": true,
+        "hidden": false,
+        "min": 1,
+        "max": 255,
+        "pattern": ""
+      },
+      {
+        "id": "faction_field",
+        "name": "faction",
+        "type": "select",
+        "system": false,
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "values": [
+          "Miliz",
+          "KGG",
+          "GOF",
+          "Enklave"
+        ],
+        "maxSelect": 1
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX idx_transactions_name ON banking_transactions (name)",
+      "CREATE INDEX idx_transactions_faction ON banking_transactions (faction)",
+      "CREATE INDEX idx_transactions_time ON banking_transactions (time)"
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": ""
+  },
+  {
+    "id": "pbc_names",
+    "name": "banking_names",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "name_text_field",
+        "name": "name",
+        "type": "text",
+        "system": false,
+        "required": true,
+        "presentable": true,
+        "hidden": false,
+        "min": 1,
+        "max": 255,
+        "pattern": ""
+      },
+      {
+        "id": "name_faction_field",
+        "name": "faction",
+        "type": "select",
+        "system": false,
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "values": ["Miliz", "KGG", "GOF", "Enklave"],
+        "maxSelect": 1
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_names_unique ON banking_names (name)"
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "",
+    "updateRule": "",
+    "deleteRule": ""
+  }
+]
