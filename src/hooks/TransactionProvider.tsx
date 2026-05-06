@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { ClientResponseError } from 'pocketbase';
 import { transactionService } from '../services/transactionService';
 import { nameService } from '../services/nameService';
 import { factionService } from '../services/factionService';
@@ -30,9 +31,21 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     transactionService.getAll().then((data) => {
-      if (!cancelled) { setTransactions(data); setLoading(false); }
+      if (!cancelled) {
+        setTransactions(data);
+        setError(null);
+        setLoading(false);
+      }
     }).catch((err) => {
-      if (!cancelled) { setError(err instanceof Error ? err.message : 'Failed to load transactions'); setLoading(false); }
+      if (!cancelled) {
+        if (err instanceof ClientResponseError && err.isAbort) {
+          // just ignore, but still we might need to set loading to false if this was the only request
+          // however pocketbase cancels the PREVIOUS request. But just to be safe, we will clear loading.
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load transactions');
+        }
+        setLoading(false);
+      }
     });
 
     nameService.getAll().then((data) => {
@@ -87,7 +100,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       const txData: TransactionCreateData = {
         nameId: nameRecord.id,
         amount: data.amount,
-        time: data.time,
+        time: new Date(data.time).toISOString(),
         tracked: data.tracked,
       };
       await transactionService.create(txData);
