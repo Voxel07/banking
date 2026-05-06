@@ -111,6 +111,11 @@ export function formatDateTime(dateStr: string): string {
   }).format(new Date(dateStr));
 }
 
+export function getLocalDatetimeLocal(date = new Date()): string {
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function buildTimeSeriesData(
   transactions: ResolvedTransaction[],
 ): { time: string; [name: string]: number | string }[] {

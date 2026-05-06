@@ -8,7 +8,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useTransactionContext } from '../hooks/transactionContext';
 import { FACTIONS } from '../types';
 import type { Faction } from '../types';
-import { formatCurrency, getStartingValues, aggregateByFaction } from '../utils/calculations';
+import { formatCurrency, getLocalDatetimeLocal, getStartingValues, aggregateByFaction } from '../utils/calculations';
 
 const FACTION_PALETTE: Record<string, string> = {
   Miliz: '#1976d2',
@@ -160,7 +160,7 @@ export default function FactionsPage() {
       name: `[${faction} Bank]`,
       amount,
       faction,
-      time: new Date().toISOString(),
+      time: getLocalDatetimeLocal(),
       tracked: true,
     });
   };

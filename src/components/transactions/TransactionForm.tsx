@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -12,21 +12,28 @@ import {
   Autocomplete,
   FormControlLabel,
   Switch,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import type { Faction, Name } from '../../types';
-import { FACTIONS } from '../../types';
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import type { Faction, Name } from "../../types";
+import { FACTIONS } from "../../types";
+import { getLocalDatetimeLocal } from "../../utils/calculations";
 
 interface Props {
   names: Name[];
-  onSubmit: (data: { name: string; amount: number; faction: Faction; time: string; tracked: boolean }) => Promise<void>;
+  onSubmit: (data: {
+    name: string;
+    amount: number;
+    faction: Faction;
+    time: string;
+    tracked: boolean;
+  }) => Promise<void>;
 }
 
 export default function TransactionForm({ names, onSubmit }: Props) {
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [faction, setFaction] = useState<Faction>('Miliz');
-  const [time, setTime] = useState(() => new Date().toISOString().slice(0, 16));
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [faction, setFaction] = useState<Faction>("Miliz");
+  const [time, setTime] = useState(() => getLocalDatetimeLocal());
   const [tracked, setTracked] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,22 +47,30 @@ export default function TransactionForm({ names, onSubmit }: Props) {
     e.preventDefault();
     setError(null);
     const amt = parseFloat(amount);
-    if (!name.trim()) return setError('Name is required');
-    if (isNaN(amt) || amt === 0) return setError('Amount must not be zero');
+    if (!name.trim()) return setError("Name is required");
+    if (isNaN(amt) || amt === 0) return setError("Amount must not be zero");
 
     const effectiveFaction = matchedName ? matchedName.faction : faction;
 
     setSubmitting(true);
     try {
-      await onSubmit({ name: name.trim(), amount: amt, faction: effectiveFaction, time: new Date(time).toISOString(), tracked });
-      setName('');
-      setAmount('');
-      setTime(new Date().toISOString().slice(0, 16));
+      await onSubmit({
+        name: name.trim(),
+        amount: amt,
+        faction: effectiveFaction,
+        time,
+        tracked,
+      });
+      setName("");
+      setAmount("");
+      setTime(getLocalDatetimeLocal());
       setTracked(true);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create transaction');
+      setError(
+        err instanceof Error ? err.message : "Failed to create transaction",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -68,10 +83,16 @@ export default function TransactionForm({ names, onSubmit }: Props) {
       </Typography>
       <Box component="form" onSubmit={handleSubmit}>
         <Stack spacing={2}>
-          {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
-          {success && <Alert severity="success">Transaction created successfully</Alert>}
+          {error && (
+            <Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert severity="success">Transaction created successfully</Alert>
+          )}
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <Autocomplete
               freeSolo
               options={nameStrings}
@@ -95,13 +116,19 @@ export default function TransactionForm({ names, onSubmit }: Props) {
               sx={{ flex: 1 }}
               slotProps={{
                 input: {
-                  startAdornment: <InputAdornment position="start">€</InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">€</InputAdornment>
+                  ),
                 },
               }}
             />
           </Stack>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: 'center' }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            sx={{ alignItems: "center" }}
+          >
             <TextField
               select
               label="Faction"
@@ -109,10 +136,12 @@ export default function TransactionForm({ names, onSubmit }: Props) {
               onChange={(e) => setFaction(e.target.value as Faction)}
               disabled={factionLocked}
               sx={{ flex: 1 }}
-              helperText={factionLocked ? 'Locked to user faction' : undefined}
+              helperText={factionLocked ? "Locked to user faction" : undefined}
             >
               {FACTIONS.map((f) => (
-                <MenuItem key={f} value={f}>{f}</MenuItem>
+                <MenuItem key={f} value={f}>
+                  {f}
+                </MenuItem>
               ))}
             </TextField>
             <TextField
@@ -124,7 +153,12 @@ export default function TransactionForm({ names, onSubmit }: Props) {
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <FormControlLabel
-              control={<Switch checked={tracked} onChange={(e) => setTracked(e.target.checked)} />}
+              control={
+                <Switch
+                  checked={tracked}
+                  onChange={(e) => setTracked(e.target.checked)}
+                />
+              }
               label="Tracked"
             />
           </Stack>
@@ -134,9 +168,9 @@ export default function TransactionForm({ names, onSubmit }: Props) {
             variant="contained"
             startIcon={<AddIcon />}
             disabled={submitting}
-            sx={{ alignSelf: 'flex-start' }}
+            sx={{ alignSelf: "flex-start" }}
           >
-            {submitting ? 'Adding…' : 'Add Transaction'}
+            {submitting ? "Adding…" : "Add Transaction"}
           </Button>
         </Stack>
       </Box>
