@@ -1,13 +1,21 @@
-export type Faction = 'Miliz' | 'KGG' | 'GOF' | 'Enklave';
+// Faction is now a dynamic string - configured per event
+export type Faction = string;
 
-export const FACTIONS: Faction[] = ['Miliz', 'KGG', 'GOF', 'Enklave'];
+export interface BankingEvent {
+  id: string;
+  name: string;
+  active: boolean;
+  factions: string[]; // factions participating in this event
+  created: string;
+  updated: string;
+}
 
-export const DEFAULT_FACTION_STARTING_VALUES: Record<Faction, number> = {
-  Miliz: 500_000,
-  KGG: 750_000,
-  GOF: 600_000,
-  Enklave: 400_000,
-};
+export interface User {
+  id: string;
+  name?: string;
+  role: 'Admin' | 'banker' | 'player';
+  faction?: string;
+}
 
 export interface Transaction {
   id: string;
@@ -18,9 +26,12 @@ export interface Transaction {
   time: string;
   amount: number;
   nameId: string;
+  eventId?: string;
+  transferId?: string;
   tracked: boolean;
   expand?: {
     nameId: Name;
+    eventId?: BankingEvent;
   };
 }
 
@@ -30,15 +41,17 @@ export interface ResolvedTransaction {
   time: string;
   amount: number;
   name: string;
-  faction: Faction;
+  faction: string;
   tracked: boolean;
   nameId: string;
+  eventId?: string;
 }
 
 export interface TransactionCreateData {
   time: string;
   amount: number;
   nameId: string;
+  eventId?: string;
   tracked: boolean;
 }
 
@@ -49,7 +62,9 @@ export interface Name {
   created: string;
   updated: string;
   name: string;
-  faction: Faction;
+  faction: string;
+  userId?: string;
+  nfcId?: string;
 }
 
 export interface FactionConfig {
@@ -58,12 +73,12 @@ export interface FactionConfig {
   collectionName: string;
   created: string;
   updated: string;
-  faction: Faction;
+  faction: string;
   startingValue: number;
 }
 
 export interface FactionSummary {
-  faction: Faction;
+  faction: string;
   startingValue: number;
   total: number;
   currentValue: number;
@@ -74,7 +89,7 @@ export interface FactionSummary {
 
 export interface NameSummary {
   name: string;
-  faction: Faction;
+  faction: string;
   total: number;
   count: number;
   transactions: ResolvedTransaction[];
@@ -86,4 +101,41 @@ export type SortDirection = 'asc' | 'desc';
 export interface SortConfig {
   field: SortField;
   direction: SortDirection;
+}
+
+export interface BankingTransfer {
+  id: string;
+  time: string;
+  amount: number;
+  senderId: string;
+  receiverId: string;
+  eventId?: string;
+  tracked: boolean;
+  expand?: {
+    senderId: Name;
+    receiverId: Name;
+  };
+}
+
+export interface ResolvedTransfer {
+  id: string;
+  time: string;
+  amount: number;
+  senderName: string;
+  senderFaction: string;
+  receiverName: string;
+  receiverFaction: string;
+  senderId: string;
+  receiverId: string;
+  eventId?: string;
+  tracked: boolean;
+}
+
+export interface TransferCreateData {
+  time: string;
+  amount: number;
+  senderId: string;
+  receiverId: string;
+  eventId?: string;
+  tracked: boolean;
 }

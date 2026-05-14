@@ -7,3 +7,12 @@ services:
       - POCKETBASE_URL=http://pocketbase:8090
     depends_on:
       - pocketbase
+
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: pocketbase
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./pb_data:/pb_data
+

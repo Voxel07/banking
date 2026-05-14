@@ -3,11 +3,13 @@ import { Box, Typography, Stack, TextField, InputAdornment } from '@mui/material
 import SearchIcon from '@mui/icons-material/Search';
 import { useTransactionContext } from '../hooks/transactionContext';
 import NameTotalsTable from '../components/transactions/NameTotalsTable';
+import UserTransactionsModal from '../components/transactions/UserTransactionsModal';
 import type { NameSummary } from '../types';
 
 export default function UsersPage() {
   const { names, transactions } = useTransactionContext();
   const [search, setSearch] = useState('');
+  const [selectedUser, setSelectedUser] = useState<NameSummary | null>(null);
 
   const filteredNames = useMemo(() => {
     if (!search.trim()) return names;
@@ -58,7 +60,12 @@ export default function UsersPage() {
         <NameTotalsTable 
           summaries={userSummaries} 
           title="All Users" 
-          headerAction={searchInput} 
+          headerAction={searchInput}
+          onRowClick={(s) => setSelectedUser(s)}
+        />
+        <UserTransactionsModal 
+          summary={selectedUser} 
+          onClose={() => setSelectedUser(null)} 
         />
       </Stack>
     </Box>

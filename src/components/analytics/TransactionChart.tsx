@@ -40,9 +40,9 @@ export default function TransactionChart({ data, names, title = 'Cumulative Spen
             <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} width={90} />
             <Tooltip
               formatter={(value, name) => [formatCurrency(value as number), name as string]}
+              itemSorter={(item) => -(item.value as number)}
               contentStyle={{ backgroundColor: '#1e1e1e', border: '1px solid #444', borderRadius: 8 }}
               labelStyle={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}
-              itemStyle={{ color: '#eee' }}
             />
             <Legend />
             {names.map((name, i) => (

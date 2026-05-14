@@ -3,8 +3,9 @@ import { ClientResponseError } from 'pocketbase';
 import { transactionService } from '../services/transactionService';
 import { nameService } from '../services/nameService';
 import { factionService } from '../services/factionService';
-import type { ResolvedTransaction, TransactionCreateData, Name, Faction, FactionConfig } from '../types';
+import type { ResolvedTransaction, TransactionCreateData, Name, FactionConfig } from '../types';
 import { TransactionContext } from './transactionContext';
+import { useEventContext } from './eventContext';
 
 export function TransactionProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<ResolvedTransaction[]>([]);
@@ -13,6 +14,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   const [names, setNames] = useState<Name[]>([]);
   const [factionConfigs, setFactionConfigs] = useState<FactionConfig[]>([]);
   const [online, setOnline] = useState(navigator.onLine);
+  const { activeEvent } = useEventContext();
 
   // Online/offline detection
   useEffect(() => {
@@ -30,7 +32,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    transactionService.getAll().then((data) => {
+    transactionService.getAll(activeEvent?.id).then((data) => {
       if (!cancelled) {
         setTransactions(data);
         setError(null);
@@ -39,8 +41,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     }).catch((err) => {
       if (!cancelled) {
         if (err instanceof ClientResponseError && err.isAbort) {
-          // just ignore, but still we might need to set loading to false if this was the only request
-          // however pocketbase cancels the PREVIOUS request. But just to be safe, we will clear loading.
+          // ignore aborted
         } else {
           setError(err instanceof Error ? err.message : 'Failed to load transactions');
         }
@@ -60,7 +61,9 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       setTransactions((prev) => {
         switch (action) {
-          case 'create': return [tx, ...prev];
+          case 'create':
+            if (prev.some((t) => t.id === tx.id)) return prev;
+            return [tx, ...prev];
           case 'update': return prev.map((t) => (t.id === tx.id ? tx : t));
           case 'delete': return prev.filter((t) => t.id !== tx.id);
           default: return prev;
@@ -71,8 +74,8 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     const nameUnsub = nameService.subscribe(() => {
       if (!cancelled) {
         nameService.getAll().then((d) => { if (!cancelled) setNames(d); }).catch(() => {});
-        // Also refresh transactions since name changes affect resolved data
-        transactionService.getAll().then((d) => { if (!cancelled) setTransactions(d); }).catch(() => {});
+        // Refresh transactions since name changes affect resolved data
+        transactionService.getAll(activeEvent?.id).then((d) => { if (!cancelled) setTransactions(d); }).catch(() => {});
       }
     });
 
@@ -81,19 +84,19 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     });
 
     return () => { cancelled = true; txUnsub(); nameUnsub(); factionUnsub(); };
-  }, []);
+  }, [activeEvent?.id]);
 
   // Re-fetch when coming back online
   useEffect(() => {
     if (!online) return;
     const controller = new AbortController();
-    transactionService.getAll().then((data) => { if (!controller.signal.aborted) setTransactions(data); }).catch(() => {});
+    transactionService.getAll(activeEvent?.id).then((data) => { if (!controller.signal.aborted) setTransactions(data); }).catch(() => {});
     nameService.getAll().then((data) => { if (!controller.signal.aborted) setNames(data); }).catch(() => {});
     factionService.getAll().then((data) => { if (!controller.signal.aborted) setFactionConfigs(data); }).catch(() => {});
     return () => controller.abort();
-  }, [online]);
+  }, [online, activeEvent?.id]);
 
-  const createTransaction = useCallback(async (data: { name: string; amount: number; faction: Faction; time: string; tracked: boolean }) => {
+  const createTransaction = useCallback(async (data: { name: string; amount: number; faction: string; time: string; tracked: boolean }) => {
     try {
       // Ensure name exists and get its ID
       const nameRecord = await nameService.createIfNotExists(data.name, data.faction);
@@ -102,12 +105,13 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
         amount: data.amount,
         time: new Date(data.time).toISOString(),
         tracked: data.tracked,
+        eventId: activeEvent?.id,
       };
       await transactionService.create(txData);
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to create transaction', { cause: err });
     }
-  }, []);
+  }, [activeEvent?.id]);
 
   const updateTransaction = useCallback(async (id: string, data: { amount?: number; nameId?: string; tracked?: boolean }) => {
     try { await transactionService.update(id, data); }
@@ -119,7 +123,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     catch (err) { throw new Error(err instanceof Error ? err.message : 'Failed to delete transaction', { cause: err }); }
   }, []);
 
-  const ensureName = useCallback(async (name: string, faction: Faction): Promise<Name> => {
+  const ensureName = useCallback(async (name: string, faction: string): Promise<Name> => {
     return await nameService.createIfNotExists(name, faction);
   }, []);
 
@@ -127,7 +131,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
     await nameService.update(id, name);
   }, []);
 
-  const updateFactionStartValue = useCallback(async (faction: Faction, startingValue: number) => {
+  const updateFactionStartValue = useCallback(async (faction: string, startingValue: number) => {
     await factionService.upsert(faction, startingValue);
   }, []);
 

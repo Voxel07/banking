@@ -1,18 +1,13 @@
-// import { useMemo } from 'react';
 import { Box, Typography, Stack } from '@mui/material';
 import TransactionForm from '../components/transactions/TransactionForm';
 import TransactionTable from '../components/transactions/TransactionTable';
-// import NameTotalsTable from '../components/transactions/NameTotalsTable';
 import { useTransactionContext } from '../hooks/transactionContext';
 import { useTransactionFilters } from '../hooks/useFilters';
-// import { aggregateByName } from '../utils/calculations';
 
 export default function TransactionsPage() {
   const { transactions, loading, error, createTransaction, updateTransaction, deleteTransaction, names } =
     useTransactionContext();
   const { search, setSearch, sort, toggleSort, filtered } = useTransactionFilters(transactions);
-
-  // const nameSummaries = useMemo(() => aggregateByName(transactions), [transactions]);
 
   const handleSubmit = async (data: Parameters<typeof createTransaction>[0]) => {
     await createTransaction(data);
@@ -34,6 +29,7 @@ export default function TransactionsPage() {
 
         <TransactionTable
           transactions={filtered}
+          allTransactions={transactions}
           loading={loading}
           error={error}
           search={search}
@@ -43,8 +39,6 @@ export default function TransactionsPage() {
           onDelete={deleteTransaction}
           onEdit={handleEdit}
         />
-
-        {/* <NameTotalsTable summaries={nameSummaries} /> */}
       </Stack>
     </Box>
   );

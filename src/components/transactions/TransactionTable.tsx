@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TextField, InputAdornment, Box, Chip, Typography, IconButton,
@@ -11,33 +11,62 @@ import EditIcon from '@mui/icons-material/Edit';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import type { ResolvedTransaction, SortField, SortConfig } from '../../types';
 import { formatCurrency, formatDateTime } from '../../utils/calculations';
+import ConfirmDialog from '../layout/ConfirmDialog';
 
-const FACTION_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+const FACTION_CHIP_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
   Miliz: 'primary',
   KGG: 'error',
   GOF: 'warning',
   Enklave: 'info',
+  'Militär': 'primary',
+  'Freiheit': 'success',
+  'Banditen': 'error',
+  'Wissenschaftler': 'secondary',
+  'Stalker': 'warning',
+  'Söldner': 'info',
 };
+
+function getFactionColor(faction: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' {
+  return FACTION_CHIP_COLORS[faction] ?? 'default';
+}
 
 interface Props {
   transactions: ResolvedTransaction[];
+  allTransactions?: ResolvedTransaction[]; // all transactions for balance guard
   loading: boolean;
   error: string | null;
   search: string;
   sort: SortConfig;
   onSearchChange: (v: string) => void;
   onSortChange: (field: SortField) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void> | void;
   onEdit?: (id: string, data: { amount: number; tracked: boolean }) => void;
 }
 
 export default function TransactionTable({
-  transactions, loading, error, search, sort,
+  transactions, allTransactions, loading, error, search, sort,
   onSearchChange, onSortChange, onDelete, onEdit,
 }: Props) {
   const [editTx, setEditTx] = useState<ResolvedTransaction | null>(null);
   const [editAmount, setEditAmount] = useState('');
   const [editTracked, setEditTracked] = useState(true);
+
+  const [deleteTx, setDeleteTx] = useState<ResolvedTransaction | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // For the balance guard: compute the player's balance excluding the current tx
+  const balanceWithoutTx = useMemo(() => {
+    if (!editTx) return 0;
+    const source = allTransactions ?? transactions;
+    return source
+      .filter(t => t.tracked && t.nameId === editTx.nameId)
+      .reduce((sum, t) => sum + t.amount, 0) - editTx.amount;
+  }, [editTx, allTransactions, transactions]);
+
+  // Minimum allowed amount: balanceWithoutTx + newAmount >= 0  =>  newAmount >= -balanceWithoutTx
+  const minAllowedAmount = -balanceWithoutTx;
+  const editAmountNum = parseFloat(editAmount);
+  const editAmountInvalid = !isNaN(editAmountNum) && editAmountNum < minAllowedAmount;
 
   const openEdit = (tx: ResolvedTransaction) => {
     setEditTx(tx);
@@ -49,8 +78,20 @@ export default function TransactionTable({
     if (!editTx || !onEdit) return;
     const amt = parseFloat(editAmount);
     if (isNaN(amt)) return;
+    if (amt < minAllowedAmount) return; // guard
     onEdit(editTx.id, { amount: amt, tracked: editTracked });
     setEditTx(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTx) return;
+    setDeleteLoading(true);
+    try {
+      await onDelete(deleteTx.id);
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTx(null);
+    }
   };
 
   const columns: { field: SortField; label: string }[] = [
@@ -138,7 +179,7 @@ export default function TransactionTable({
                       <TableCell>
                         <Chip
                           label={tx.faction}
-                          color={FACTION_COLORS[tx.faction]}
+                          color={getFactionColor(tx.faction)}
                           size="small"
                           variant="outlined"
                         />
@@ -169,7 +210,7 @@ export default function TransactionTable({
                               <EditIcon fontSize="small" />
                             </IconButton>
                           )}
-                          <IconButton size="small" onClick={() => onDelete(tx.id)} color="error">
+                          <IconButton size="small" onClick={() => setDeleteTx(tx)} color="error">
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Stack>
@@ -189,7 +230,21 @@ export default function TransactionTable({
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {editTx?.name} ({editTx?.faction})
             </Typography>
-            <TextField label="Amount" type="number" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} fullWidth size="small" />
+            <TextField
+              label="Amount"
+              type="number"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              fullWidth
+              size="small"
+              error={editAmountInvalid}
+              helperText={
+                editAmountInvalid
+                  ? `Minimum allowed: ${formatCurrency(minAllowedAmount)} (balance would go below €0)`
+                  : `Balance without this transaction: ${formatCurrency(balanceWithoutTx)}`
+              }
+              slotProps={{ htmlInput: { min: minAllowedAmount } }}
+            />
             <FormControlLabel
               control={<Switch checked={editTracked} onChange={(e) => setEditTracked(e.target.checked)} />}
               label="Tracked (visible in rankings)"
@@ -198,9 +253,31 @@ export default function TransactionTable({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditTx(null)}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained">Save</Button>
+          <Button
+            onClick={handleSaveEdit}
+            variant="contained"
+            disabled={editAmountInvalid || isNaN(parseFloat(editAmount))}
+          >
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        open={!!deleteTx}
+        title="Delete Transaction"
+        message={
+          deleteTx
+            ? `Delete transaction of ${formatCurrency(deleteTx.amount)} for ${deleteTx.name}? This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        severity="error"
+        loading={deleteLoading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTx(null)}
+      />
     </Paper>
   );
 }

@@ -1,12 +1,12 @@
 import pb from './pocketbase';
-import type { FactionConfig, Faction } from '../types';
+import type { FactionConfig } from '../types';
 
 export const factionService = {
   async getAll(): Promise<FactionConfig[]> {
     return pb.collection('banking_factions').getFullList<FactionConfig>({ sort: 'faction' });
   },
 
-  async upsert(faction: Faction, startingValue: number): Promise<FactionConfig> {
+  async upsert(faction: string, startingValue: number): Promise<FactionConfig> {
     const filter = `faction = '${faction}'`;
     try {
       const records = await pb.collection('banking_factions').getList<FactionConfig>(1, 1, { filter });

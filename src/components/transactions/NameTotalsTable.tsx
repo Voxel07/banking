@@ -6,22 +6,33 @@ import {
 import type { NameSummary } from '../../types';
 import { formatCurrency } from '../../utils/calculations';
 
-const FACTION_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+const FACTION_CHIP_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
   Miliz: 'primary',
   KGG: 'error',
   GOF: 'warning',
   Enklave: 'info',
+  'Militär': 'primary',
+  'Freiheit': 'success',
+  'Banditen': 'error',
+  'Wissenschaftler': 'secondary',
+  'Stalker': 'warning',
+  'Söldner': 'info',
 };
+
+function getFactionColor(faction: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' {
+  return FACTION_CHIP_COLORS[faction] ?? 'default';
+}
 
 interface Props {
   summaries: NameSummary[];
   title?: string;
   headerAction?: React.ReactNode;
+  onRowClick?: (summary: NameSummary) => void;
 }
 
 type SortField = 'name' | 'count' | 'total';
 
-export default function NameTotalsTable({ summaries, title = 'Rankings (Tracked Only)', headerAction }: Props) {
+export default function NameTotalsTable({ summaries, title = 'Rankings (Tracked Only)', headerAction, onRowClick }: Props) {
   const [sortField, setSortField] = useState<SortField>('total');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -91,7 +102,12 @@ export default function NameTotalsTable({ summaries, title = 'Rankings (Tracked 
               : sortedSummaries.map((s) => {
                 const rank = rankings.get(s.name) ?? -1;
                 return (
-                <TableRow key={s.name} hover>
+                <TableRow 
+                  key={s.name} 
+                  hover 
+                  onClick={() => onRowClick?.(s)}
+                  sx={{ cursor: onRowClick ? 'pointer' : 'default' }}
+                >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {rank >= 0 && rank < 3 && (
@@ -106,7 +122,7 @@ export default function NameTotalsTable({ summaries, title = 'Rankings (Tracked 
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Chip label={s.faction} size="small" variant="outlined" color={FACTION_COLORS[s.faction]} />
+                    <Chip label={s.faction} size="small" variant="outlined" color={getFactionColor(s.faction)} />
                   </TableCell>
                   <TableCell align="right">{s.count}</TableCell>
                   <TableCell align="right">

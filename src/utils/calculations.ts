@@ -1,8 +1,7 @@
-import type { ResolvedTransaction, NameSummary, FactionSummary, Faction, SortConfig, FactionConfig } from '../types';
-import { FACTIONS, DEFAULT_FACTION_STARTING_VALUES } from '../types';
+import type { ResolvedTransaction, NameSummary, FactionSummary, SortConfig, FactionConfig } from '../types';
 
-export function getStartingValues(factionConfigs: FactionConfig[]): Record<Faction, number> {
-  const result = { ...DEFAULT_FACTION_STARTING_VALUES };
+export function getStartingValues(factionConfigs: FactionConfig[]): Record<string, number> {
+  const result: Record<string, number> = {};
   for (const cfg of factionConfigs) {
     result[cfg.faction] = cfg.startingValue;
   }
@@ -33,9 +32,13 @@ export function aggregateByName(transactions: ResolvedTransaction[]): NameSummar
   return Array.from(map.values()).sort((a, b) => b.total - a.total);
 }
 
-export function aggregateByFaction(transactions: ResolvedTransaction[], factionConfigs: FactionConfig[]): FactionSummary[] {
+export function aggregateByFaction(
+  transactions: ResolvedTransaction[],
+  factionConfigs: FactionConfig[],
+  factions: string[],
+): FactionSummary[] {
   const startingValues = getStartingValues(factionConfigs);
-  const map = new Map<Faction, { total: number; count: number }>();
+  const map = new Map<string, { total: number; count: number }>();
 
   for (const tx of transactions) {
     if (!tx.tracked) continue;
@@ -48,9 +51,9 @@ export function aggregateByFaction(transactions: ResolvedTransaction[], factionC
     }
   }
 
-  return FACTIONS.map((faction) => {
+  return factions.map((faction) => {
     const data = map.get(faction) ?? { total: 0, count: 0 };
-    const startingValue = startingValues[faction];
+    const startingValue = startingValues[faction] ?? 0;
     const diff = data.total;
     const currentValue = startingValue + diff;
     const diffPercent = startingValue > 0 ? (diff / startingValue) * 100 : 0;
@@ -157,6 +160,7 @@ export function buildTimeSeriesData(
 export function buildFactionTimeSeriesData(
   transactions: ResolvedTransaction[],
   factionConfigs: FactionConfig[],
+  factions: string[],
 ): { time: string; [faction: string]: number | string }[] {
   const tracked = transactions.filter((tx) => tx.tracked);
   if (tracked.length === 0) return [];
@@ -177,13 +181,13 @@ export function buildFactionTimeSeriesData(
   }
 
   const cumulative: Record<string, number> = {};
-  for (const f of FACTIONS) cumulative[f] = startingValues[f];
+  for (const f of factions) cumulative[f] = startingValues[f] ?? 0;
 
   const result: { time: string; [faction: string]: number | string }[] = [];
 
   for (const [time, hourData] of hourMap.entries()) {
-    for (const f of FACTIONS) {
-      cumulative[f] = cumulative[f] + (hourData[f] ?? 0);
+    for (const f of factions) {
+      cumulative[f] = (cumulative[f] ?? 0) + (hourData[f] ?? 0);
     }
     result.push({ time, ...cumulative });
   }

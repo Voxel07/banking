@@ -147,9 +147,9 @@
         "system": false,
         "type": "select",
         "values": [
-          "admin",
-          "banker",
-          "player"
+          "Admin",
+          "User",
+          "Guest"
         ]
       },
       {
@@ -171,22 +171,6 @@
         "presentable": false,
         "system": false,
         "type": "autodate"
-      },
-      {
-        "id": "users_faction",
-        "name": "faction",
-        "type": "select",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "values": [
-          "Miliz",
-          "KGG",
-          "GOF",
-          "Enklave"
-        ],
-        "maxSelect": 1
       }
     ],
     "indexes": [
@@ -261,43 +245,6 @@
       "subject": "Confirm your {APP_NAME} new email address",
       "body": "<p>Hello,</p>\n<p>Click on the button below to confirm your new email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-email-change/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Confirm new email</a>\n</p>\n<p><i>If you didn't ask to change your email address, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
     }
-  },
-  {
-    "id": "pbc_events",
-    "name": "banking_events",
-    "type": "base",
-    "system": false,
-    "fields": [
-      {
-        "id": "event_name_field",
-        "name": "name",
-        "type": "text",
-        "system": false,
-        "required": true,
-        "presentable": true,
-        "hidden": false,
-        "min": 1,
-        "max": 255,
-        "pattern": ""
-      },
-      {
-        "id": "event_active_field",
-        "name": "active",
-        "type": "bool",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false
-      }
-    ],
-    "indexes": [
-      "CREATE UNIQUE INDEX idx_events_name ON banking_events (name)"
-    ],
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": ""
   },
   {
     "id": "pbc_factions",
@@ -416,36 +363,10 @@
         "required": true,
         "system": true,
         "type": "text"
-      },
-      {
-        "id": "name_user_field",
-        "name": "userId",
-        "type": "relation",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "collectionId": "_pb_users_auth_",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "name_nfc_field",
-        "name": "nfcId",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "min": null,
-        "max": null,
-        "pattern": ""
       }
     ],
     "indexes": [
-      "CREATE UNIQUE INDEX idx_names_unique ON banking_names (name)",
-      "CREATE UNIQUE INDEX idx_names_nfc ON banking_names (nfcId) WHERE nfcId != ''"
+      "CREATE UNIQUE INDEX idx_names_unique ON banking_names (name)"
     ],
     "system": false
   },
@@ -522,19 +443,6 @@
         "required": true,
         "system": true,
         "type": "text"
-      },
-      {
-        "id": "event_id_field",
-        "name": "eventId",
-        "type": "relation",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "collectionId": "pbc_events",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
       }
     ],
     "indexes": [
@@ -542,178 +450,5 @@
       "CREATE INDEX idx_transactions_time ON banking_transactions (time)"
     ],
     "system": false
-  },
-  {
-    "id": "pbc_transfers",
-    "name": "banking_transfers",
-    "type": "base",
-    "system": false,
-    "fields": [
-      {
-        "id": "transfer_time_field",
-        "name": "time",
-        "type": "date",
-        "system": false,
-        "required": true,
-        "presentable": false,
-        "hidden": false
-      },
-      {
-        "id": "transfer_amount_field",
-        "name": "amount",
-        "type": "number",
-        "system": false,
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "min": null,
-        "max": null,
-        "onlyInt": false
-      },
-      {
-        "id": "sender_id_field",
-        "name": "senderId",
-        "type": "relation",
-        "system": false,
-        "required": true,
-        "presentable": true,
-        "hidden": false,
-        "collectionId": "pbc_names",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "receiver_id_field",
-        "name": "receiverId",
-        "type": "relation",
-        "system": false,
-        "required": true,
-        "presentable": true,
-        "hidden": false,
-        "collectionId": "pbc_names",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "transfer_event_id_field",
-        "name": "eventId",
-        "type": "relation",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "collectionId": "pbc_events",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "transfer_tracked_field",
-        "name": "tracked",
-        "type": "bool",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false
-      }
-    ],
-    "indexes": [
-      "CREATE INDEX idx_transfers_time ON banking_transfers (time)"
-    ],
-    "listRule": "",
-    "viewRule": "",
-    "createRule": "",
-    "updateRule": "",
-    "deleteRule": ""
-  },
-  {
-    "id": "pbc_logs",
-    "name": "banking_logs",
-    "type": "base",
-    "system": false,
-    "fields": [
-      {
-        "id": "log_action",
-        "name": "action",
-        "type": "text",
-        "system": false,
-        "required": true,
-        "presentable": true,
-        "hidden": false,
-        "min": 1,
-        "max": 255,
-        "pattern": ""
-      },
-      {
-        "id": "log_entity",
-        "name": "entity",
-        "type": "text",
-        "system": false,
-        "required": true,
-        "presentable": true,
-        "hidden": false,
-        "min": 1,
-        "max": 255,
-        "pattern": ""
-      },
-      {
-        "id": "log_entity_id",
-        "name": "entityId",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "min": null,
-        "max": null,
-        "pattern": ""
-      },
-      {
-        "id": "log_details",
-        "name": "details",
-        "type": "json",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "maxSize": 2000000
-      },
-      {
-        "id": "log_faction",
-        "name": "faction",
-        "type": "text",
-        "system": false,
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "min": null,
-        "max": null,
-        "pattern": ""
-      },
-      {
-        "id": "log_user_id",
-        "name": "userId",
-        "type": "relation",
-        "system": false,
-        "required": false,
-        "presentable": true,
-        "hidden": false,
-        "collectionId": "_pb_users_auth_",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      }
-    ],
-    "indexes": [
-      "CREATE INDEX idx_logs_action ON banking_logs (action)",
-      "CREATE INDEX idx_logs_entity ON banking_logs (entity)"
-    ],
-    "listRule": "@request.auth.role = 'admin' || (@request.auth.role = 'banker' && @request.auth.faction = faction)",
-    "viewRule": "@request.auth.role = 'admin' || (@request.auth.role = 'banker' && @request.auth.faction = faction)",
-    "createRule": "@request.auth.id != ''",
-    "updateRule": null,
-    "deleteRule": null
   }
 ]
